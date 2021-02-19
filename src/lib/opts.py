@@ -105,7 +105,7 @@ class opts(object):
                              help='multi scale test augmentation.')
     self.parser.add_argument('--nms', action='store_true',
                              help='run nms in testing.')
-    self.parser.add_argument('--K', type=int, default=100,
+    self.parser.add_argument('--K', type=int, default=2000,
                              help='max number of output objects.') 
     self.parser.add_argument('--not_prefetch_test', action='store_true',
                              help='not use parallal data pre-processing.')
@@ -223,6 +223,12 @@ class opts(object):
                              help='use ground truth human joint local offset.')
     self.parser.add_argument('--eval_oracle_dep', action='store_true', 
                              help='use ground truth depth.')
+
+    # Enhanced NMS by strong neighbors aggregation and size-awared IOU threshold
+    self.parser.add_argument('--pre_cluster_method', type=str, default='maxpool',
+                             help='1st round cluster method, set to maxpool or empty.')
+    self.parser.add_argument('--filter_threshold', type=float, default=-0.01,
+                             help='threshold to filter out too weak proposals.')
 
   def parse(self, args=''):
     if args == '':

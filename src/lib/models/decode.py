@@ -6,13 +6,25 @@ import torch
 import torch.nn as nn
 from .utils import _gather_feat, _transpose_and_gather_feat
 
-def _nms(heat, kernel=3):
-    pad = (kernel - 1) // 2
+def pre_clustering(heat, kernel=3, pre_cluster_method='maxpool', filter_threshold=-0.01):
+    filtered_heat = heat
+    if pre_cluster_method == 'maxpool':
+        pad = (kernel - 1) // 2
 
-    hmax = nn.functional.max_pool2d(
-        heat, (kernel, kernel), stride=1, padding=pad)
-    keep = (hmax == heat).float()
-    return heat * keep
+        hmax = nn.functional.max_pool2d(
+            filtered_heat, (kernel, kernel), stride=1, padding=pad)
+        keep = (hmax == filtered_heat).float()
+        filtered_heat = filtered_heat * keep
+    elif pre_cluster_method == 'empty':
+        # We do nothing for this case
+        pass
+    else:
+        raise ValueError("Invalid option for pre_cluster_method!!!")
+
+    if filter_threshold > 0.0:
+        keep = (filtered_heat > filter_threshold).float()
+        filtered_heat = filtered_heat * keep
+    return filtered_heat
 
 def _left_aggregate(heat):
     '''
@@ -140,10 +152,10 @@ def agnex_ct_decode(
       r_heat = _v_aggregate(r_heat, aggr_weight=aggr_weight)
       
     # perform nms on heatmaps
-    t_heat = _nms(t_heat)
-    l_heat = _nms(l_heat)
-    b_heat = _nms(b_heat)
-    r_heat = _nms(r_heat)
+    t_heat = pre_clustering(t_heat)
+    l_heat = pre_clustering(l_heat)
+    b_heat = pre_clustering(b_heat)
+    r_heat = pre_clustering(r_heat)
       
       
     t_heat[t_heat > 1] = 1
@@ -291,10 +303,10 @@ def exct_decode(
       r_heat = _v_aggregate(r_heat, aggr_weight=aggr_weight)
       
     # perform nms on heatmaps
-    t_heat = _nms(t_heat)
-    l_heat = _nms(l_heat)
-    b_heat = _nms(b_heat)
-    r_heat = _nms(r_heat)
+    t_heat = pre_clustering(t_heat)
+    l_heat = pre_clustering(l_heat)
+    b_heat = pre_clustering(b_heat)
+    r_heat = pre_clustering(r_heat)
       
     t_heat[t_heat > 1] = 1
     l_heat[l_heat > 1] = 1
@@ -427,7 +439,7 @@ def ddd_decode(heat, rot, depth, dim, wh=None, reg=None, K=40):
     batch, cat, height, width = heat.size()
     # heat = torch.sigmoid(heat)
     # perform nms on heatmaps
-    heat = _nms(heat)
+    heat = pre_clustering(heat)
       
     scores, inds, clses, ys, xs = _topk(heat, K=K)
     if reg is not None:
@@ -461,12 +473,12 @@ def ddd_decode(heat, rot, depth, dim, wh=None, reg=None, K=40):
       
     return detections
 
-def ctdet_decode(heat, wh, reg=None, cat_spec_wh=False, K=100):
+def ctdet_decode(heat, wh, reg=None, cat_spec_wh=False, K=100, pre_cluster_method='maxpool', filter_threshold=-0.01):
     batch, cat, height, width = heat.size()
 
     # heat = torch.sigmoid(heat)
     # perform nms on heatmaps
-    heat = _nms(heat)
+    heat = pre_clustering(heat, pre_cluster_method=pre_cluster_method, filter_threshold=filter_threshold)
       
     scores, inds, clses, ys, xs = _topk(heat, K=K)
     if reg is not None:
@@ -500,7 +512,7 @@ def multi_pose_decode(
   num_joints = kps.shape[1] // 2
   # heat = torch.sigmoid(heat)
   # perform nms on heatmaps
-  heat = _nms(heat)
+  heat = pre_clustering(heat)
   scores, inds, clses, ys, xs = _topk(heat, K=K)
 
   kps = _transpose_and_gather_feat(kps, inds)
