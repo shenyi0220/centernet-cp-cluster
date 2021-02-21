@@ -229,6 +229,14 @@ class opts(object):
                              help='1st round cluster method, set to maxpool or empty.')
     self.parser.add_argument('--filter_threshold', type=float, default=-0.01,
                              help='threshold to filter out too weak proposals.')
+    self.parser.add_argument('--nms_method', type=str, default='soft',
+                             help='which nms to apply, normal or soft.')
+    self.parser.add_argument('--nms_opt_sna', type=int, default=0,
+                             help='Enable Strong Neighbor Aggregation For NMS')
+    self.parser.add_argument('--nms_opt_sai', type=int, default=0,
+                             help='Enable Size-Aware IOU threshold For NMS')
+    self.parser.add_argument('--nms_sna_threshold', type=float, default=0.8,
+                             help='IOU Threshold to distinguish whether 2 boxes are strong neighbors')
 
   def parse(self, args=''):
     if args == '':

@@ -74,14 +74,14 @@ def nms(np.ndarray[np.float32_t, ndim=2] dets, np.float thresh):
 
     return keep
 
-def soft_nms(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, float threshold=0.001, unsigned int method=0):
+def soft_nms(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, float threshold=0.001, unsigned int method=0, int opt_sna=0, float sna_threshold=0.8):
     cdef unsigned int N = boxes.shape[0]
     cdef float iw, ih, box_area
     cdef float ua
     cdef int pos = 0
     cdef float maxscore = 0
     cdef int maxpos = 0
-    cdef float x1,x2,y1,y2,tx1,tx2,ty1,ty2,ts,area,weight,ov
+    cdef float x1,x2,y1,y2,tx1,tx2,ty1,ty2,ts,area,weight,ov,auxProposalNumber,auxMaxConf
 
     for i in range(N):
         maxscore = boxes[i, 4]
@@ -121,6 +121,10 @@ def soft_nms(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, flo
         ty2 = boxes[i,3]
         ts = boxes[i,4]
 
+        # vars for sna
+        auxMaxConf = 0.0
+        auxProposalNumber = 0.0
+
         pos = i + 1
         # NMS iterations, note that N changes if detection boxes fall below threshold
         while pos < N:
@@ -151,6 +155,11 @@ def soft_nms(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, flo
                         else:
                             weight = 1
 
+                    if ov >= sna_threshold:
+                        auxProposalNumber = auxProposalNumber + 1.0
+                        if boxes[pos, 4] > auxMaxConf:
+                            auxMaxConf = boxes[pos, 4]
+
                     boxes[pos, 4] = weight*boxes[pos, 4]
                                 
                     # if box score falls below threshold, discard the box by swapping with last box
@@ -165,6 +174,8 @@ def soft_nms(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, flo
                         pos = pos - 1
 
             pos = pos + 1
+        if opt_sna == 1:
+            boxes[i,4] = boxes[i,4] + (1.0 - boxes[i,4]) * (auxProposalNumber / (auxProposalNumber + 1.0)) * auxMaxConf
 
     keep = [i for i in range(N)]
     return keep

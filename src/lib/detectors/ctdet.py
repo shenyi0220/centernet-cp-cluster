@@ -10,6 +10,7 @@ import torch
 
 try:
   from external.nms import soft_nms
+  from external.nms import nms
 except:
   print('NMS not imported! If you need it,'
         ' do \n cd $CenterNet_ROOT/src/lib/external \n make')
@@ -63,7 +64,10 @@ class CtdetDetector(BaseDetector):
       results[j] = np.concatenate(
         [detection[j] for detection in detections], axis=0).astype(np.float32)
       if len(self.scales) > 1 or self.opt.nms:
-         soft_nms(results[j], Nt=0.5, method=2)
+        if self.opt.nms_method == 'soft':
+          soft_nms(results[j], Nt=0.5, method=2, opt_sna=self.opt.nms_opt_sna, sna_threshold=self.opt.nms_sna_threshold)
+        elif self.opt.nms_method == 'normal':
+          nms(results[j], thresh=0.5)
     scores = np.hstack(
       [results[j][:, 4] for j in range(1, self.num_classes + 1)])
     if len(scores) > self.max_per_image:
