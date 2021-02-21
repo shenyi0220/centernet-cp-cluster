@@ -21,6 +21,16 @@ cdef inline np.float32_t max(np.float32_t a, np.float32_t b):
 cdef inline np.float32_t min(np.float32_t a, np.float32_t b):
     return a if a <= b else b
 
+cdef np.float32_t getSizeAwareIOUThresh(np.float32_t w, np.float32_t h, np.float32_t lowerBound=20.0,
+                                        np.float32_t upperBound=120.0, np.float32_t minThresh=0.4, np.float32_t maxThresh=0.7):
+    cdef np.float32_t boxSize
+    boxSize = (w + h) / 2.0
+    if boxSize <= lowerBound:
+        return minThresh
+    elif boxSize >= upperBound:
+        return maxThresh
+    return minThresh + (maxThresh - minThresh) * (boxSize - lowerBound) / (upperBound - lowerBound)
+
 def nms(np.ndarray[np.float32_t, ndim=2] dets, np.float thresh):
     cdef np.ndarray[np.float32_t, ndim=1] x1 = dets[:, 0]
     cdef np.ndarray[np.float32_t, ndim=1] y1 = dets[:, 1]
@@ -74,7 +84,8 @@ def nms(np.ndarray[np.float32_t, ndim=2] dets, np.float thresh):
 
     return keep
 
-def soft_nms(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, float threshold=0.001, unsigned int method=0, int opt_sna=0, float sna_threshold=0.8):
+def soft_nms(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, float threshold=0.001, unsigned int method=0,
+             int opt_sna=0, float sna_threshold=0.8, int opt_sai=0):
     cdef unsigned int N = boxes.shape[0]
     cdef float iw, ih, box_area
     cdef float ua
@@ -120,6 +131,13 @@ def soft_nms(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, flo
         tx2 = boxes[i,2]
         ty2 = boxes[i,3]
         ts = boxes[i,4]
+
+        # apply sai
+        if opt_sai:
+            Nt = getSizeAwareIOUThresh(tx2 - tx1, ty2 - ty1, 30.0, 100.0, 0.45, 0.6)
+            #print("ashen_debug Nt is {} and ih is {} and iw is {}", Nt, ty2 - ty1, tx2 - tx1)
+            sna_threshold = getSizeAwareIOUThresh(tx2 - tx1, ty2 - ty1, 50.0, 80.0, 0.8, 0.9)
+            #print("ashen_debug sna_threshold is {} and ih is {} and iw is {}", sna_threshold, ty2 - ty1, tx2 - tx1)
 
         # vars for sna
         auxMaxConf = 0.0

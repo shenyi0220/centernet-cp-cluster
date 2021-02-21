@@ -65,7 +65,7 @@ class CtdetDetector(BaseDetector):
         [detection[j] for detection in detections], axis=0).astype(np.float32)
       if len(self.scales) > 1 or self.opt.nms:
         if self.opt.nms_method == 'soft':
-          soft_nms(results[j], Nt=0.5, method=2, opt_sna=self.opt.nms_opt_sna, sna_threshold=self.opt.nms_sna_threshold)
+          soft_nms(results[j], Nt=0.5, method=2, opt_sna=self.opt.nms_opt_sna, sna_threshold=self.opt.nms_sna_threshold, opt_sai=self.opt.nms_opt_sai)
         elif self.opt.nms_method == 'normal':
           nms(results[j], thresh=0.5)
     scores = np.hstack(
