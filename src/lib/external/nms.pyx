@@ -92,7 +92,7 @@ def soft_nms(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, flo
     cdef int pos = 0
     cdef float maxscore = 0
     cdef int maxpos = 0
-    cdef float x1,x2,y1,y2,tx1,tx2,ty1,ty2,ts,area,weight,ov,auxProposalNumber,auxMaxConf
+    cdef float x1,x2,y1,y2,tx1,tx2,ty1,ty2,ts,area,weight,ov,auxProposalNumber,auxMaxConf, auxMaxX1, auxMaxX2, auxMaxY1, auxMaxY2
 
     for i in range(N):
         maxscore = boxes[i, 4]
@@ -142,6 +142,10 @@ def soft_nms(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, flo
         # vars for sna
         auxMaxConf = 0.0
         auxProposalNumber = 0.0
+        auxMaxX1 = tx1
+        auxMaxX2 = tx2
+        auxMaxY1 = ty1
+        auxMaxY2 = ty2
 
         pos = i + 1
         # NMS iterations, note that N changes if detection boxes fall below threshold
@@ -177,6 +181,10 @@ def soft_nms(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, flo
                         auxProposalNumber = auxProposalNumber + 1.0
                         if boxes[pos, 4] > auxMaxConf:
                             auxMaxConf = boxes[pos, 4]
+                            auxMaxX1 = boxes[pos, 0]
+                            auxMaxY1 = boxes[pos, 1]
+                            auxMaxX2 = boxes[pos, 2]
+                            auxMaxY2 = boxes[pos, 3]
 
                     boxes[pos, 4] = weight*boxes[pos, 4]
                                 
@@ -194,6 +202,10 @@ def soft_nms(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, flo
             pos = pos + 1
         if opt_sna == 1:
             boxes[i,4] = boxes[i,4] + (1.0 - boxes[i,4]) * (auxProposalNumber / (auxProposalNumber + 1.0)) * auxMaxConf
+            boxes[i,0] = (boxes[i,4] * boxes[i, 0] + auxMaxConf * auxMaxX1) / (boxes[i,4] + auxMaxConf)
+            boxes[i,1] = (boxes[i,4] * boxes[i, 1] + auxMaxConf * auxMaxY1) / (boxes[i,4] + auxMaxConf)
+            boxes[i,2] = (boxes[i,4] * boxes[i, 2] + auxMaxConf * auxMaxX2) / (boxes[i,4] + auxMaxConf)
+            boxes[i,3] = (boxes[i,4] * boxes[i, 3] + auxMaxConf * auxMaxY2) / (boxes[i,4] + auxMaxConf)
 
     keep = [i for i in range(N)]
     return keep
