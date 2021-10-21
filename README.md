@@ -40,6 +40,13 @@ Detection identifies objects as axis-aligned boxes in an image. Most successful 
 |ResNet-101    | 34.6 / 45 | 36.2 / 25    | 39.3 / 4              |
 |ResNet-18     | 28.1 / 142| 30.0 / 71    | 33.2 / 12             |
 
+### Object Detection with CP-Cluster on COCO validation
+
+| Backbone     |  AP |  Multi-scale AP |
+|--------------|-----------|-----------------------|
+|Hourglass-104 | 41.2 | 46.3            |
+|DLA-34        | 39.4 | 43.5            |
+
 ### Keypoint detection on COCO validation
 
 | Backbone     |  AP       |  FPS         |
@@ -119,6 +126,26 @@ ret = detector.run(img)['results']
 
 After [installation](readme/INSTALL.md), follow the instructions in [DATA.md](readme/DATA.md) to setup the datasets. Then check [GETTING_STARTED.md](readme/GETTING_STARTED.md) to reproduce the results in the paper.
 We provide scripts for all the experiments in the [experiments](experiments) folder.
+
+## Repro COCO-val results with CP-Cluster
+
+### Hourglass model
+
+python test.py ctdet --exp_id coco_hourglass_bp --arch hourglass --keep_res --nms --pre_cluster_method empty --filter_threshold 0.05 --nms_opt_sna 1 --nms_sna_threshold 0.8 --load_model ../models/ctdet_coco_hg.pth
+
+### Hourglass model with flip and multi-scale
+
+python test.py ctdet --exp_id coco_hourglass_bp --arch hourglass --keep_res --nms --pre_cluster_method empty --filter_threshold 0.05 --nms_opt_sna 1 --nms_sna_threshold 0.8 --load_model ../models/ctdet_coco_hg.pth --flip_test --test_scales 0.5,0.75,1,1.25,1.5
+
+### DLA-34 model
+python test.py ctdet --exp_id coco_dla_exp1 --arch hourglass --keep_res --nms --pre_cluster_method empty --filter_threshold 0.05 --nms_opt_sna 1 --nms_sna_threshold 0.8 --load_model ../models/ctdet_coco_dla_2x.pth
+
+### DLA-34 model with flip and multi-scale
+python test.py ctdet --exp_id coco_dla_exp1 --arch hourglass --keep_res --nms --pre_cluster_method empty --filter_threshold 0.05 --nms_opt_sna 1 --nms_sna_threshold 0.8 --load_model ../models/ctdet_coco_dla_2x.pth --flip_test --test_scales 0.5,0.75,1,1.25,1.5
+
+### Baseline Centernet DLA-34 model(maxpooling as postprocess)
+python test.py ctdet --exp_id coco_dla_exp1 --arch dla_34 --keep_res  --pre_cluster_method maxpool --load_model ../models/ctdet_coco_dla_2x.pt
+
 
 ## Develop
 
