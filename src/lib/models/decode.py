@@ -114,7 +114,8 @@ def _topk_channel(scores, K=40):
 
 def _topk(scores, K=40):
     batch, cat, height, width = scores.size()
-      
+
+    K = min(K, height*width)
     topk_scores, topk_inds = torch.topk(scores.view(batch, cat, -1), K)
 
     topk_inds = topk_inds % (height * width)
@@ -163,6 +164,7 @@ def agnex_ct_decode(
     b_heat[b_heat > 1] = 1
     r_heat[r_heat > 1] = 1
 
+    K = min(K, width*height)
     t_scores, t_inds, _, t_ys, t_xs = _topk(t_heat, K=K)
     l_scores, l_inds, _, l_ys, l_xs = _topk(l_heat, K=K)
     b_scores, b_inds, _, b_ys, b_xs = _topk(b_heat, K=K)
@@ -313,6 +315,7 @@ def exct_decode(
     b_heat[b_heat > 1] = 1
     r_heat[r_heat > 1] = 1
 
+    K = min(K, width*height)
     t_scores, t_inds, t_clses, t_ys, t_xs = _topk(t_heat, K=K)
     l_scores, l_inds, l_clses, l_ys, l_xs = _topk(l_heat, K=K)
     b_scores, b_inds, b_clses, b_ys, b_xs = _topk(b_heat, K=K)
@@ -440,7 +443,8 @@ def ddd_decode(heat, rot, depth, dim, wh=None, reg=None, K=40):
     # heat = torch.sigmoid(heat)
     # perform nms on heatmaps
     heat = pre_clustering(heat)
-      
+
+    K = min(K, width*height)
     scores, inds, clses, ys, xs = _topk(heat, K=K)
     if reg is not None:
       reg = _transpose_and_gather_feat(reg, inds)
@@ -479,7 +483,8 @@ def ctdet_decode(heat, wh, reg=None, cat_spec_wh=False, K=100, pre_cluster_metho
     # heat = torch.sigmoid(heat)
     # perform nms on heatmaps
     heat = pre_clustering(heat, pre_cluster_method=pre_cluster_method, filter_threshold=filter_threshold)
-      
+
+    K = min(K, width*height)
     scores, inds, clses, ys, xs = _topk(heat, K=K)
     if reg is not None:
       reg = _transpose_and_gather_feat(reg, inds)
