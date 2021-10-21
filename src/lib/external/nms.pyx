@@ -358,9 +358,12 @@ def soft_bp_nms_v2(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.
     cdef np.ndarray[np.float32_t, ndim=1] iou_thresholds = np.zeros(10, dtype=np.float32)
     cdef np.ndarray[np.float32_t, ndim=1] alphas = np.ones(10, dtype=np.float32)
     cdef np.ndarray[np.float32_t, ndim=1] betas = np.ones(10, dtype=np.float32)
+    cdef np.ndarray[np.float32_t, ndim=1] m_w1 = np.ones(10, dtype=np.float32)
+    cdef np.ndarray[np.float32_t, ndim=1] m_w2 = np.ones(10, dtype=np.float32)
     # Suppress mat: [i, j]=m indicates that Det[i] suppressed Det[j] for m times.
     cdef np.ndarray[np.int_t, ndim=2] suppressRecodMat = np.zeros([N, N], dtype=np.int)
     cdef int maxSuppressTime = 1
+    cdef float momentum = 0.0
     cdef int suppressIdx
     iou_thresholds[0] = Nt
     iou_thresholds[1] = 0.75
@@ -371,6 +374,10 @@ def soft_bp_nms_v2(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.
     betas[1] = 1.0
     alphas[2] = 1.0
     betas[2] = 1.0
+    m_w1[0] = 1.0
+    m_w2[0] = 0.0
+    m_w1[1] = 0.0
+    m_w2[1] = 1.0
 
     for iter in range(maxiter):
         posTerms = np.zeros([N, 6], dtype=np.float32)
@@ -409,7 +416,8 @@ def soft_bp_nms_v2(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.
                 s = boxes[pos, 4]
                 area = areas[pos]
 
-                if pos == i or s <= threshold or s > ts or suppressRecodMat[i, pos] >= maxSuppressTime:
+
+                if pos == i or s <= threshold or s > ts:
                     continue
 
                 # area = (x2 - x1 + 1) * (y2 - y1 + 1)
@@ -421,13 +429,14 @@ def soft_bp_nms_v2(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.
                         ua = float(tarea + area - inter)
                         ov = inter / ua #iou between max box and detection box
 
-                        if ov > iou_thresholds[iter]:
+                        if ov > iou_thresholds[iter] and suppressRecodMat[i, pos] < maxSuppressTime:
                             #if ov > negTerms[pos, 0]:
                             #    negTerms[pos, 0] = ov
                             #    negTerms[pos, 2] = (float)(i)
-                            if ts > negTerms[pos, 1]:
+                            momentum = m_w1[iter] * (ts / s) + m_w2[iter] * (ov / iou_thresholds[iter])
+                            if momentum > negTerms[pos, 1]:
                                 negTerms[pos, 0] = ov
-                                negTerms[pos, 1] = ts
+                                negTerms[pos, 1] = momentum
                                 negTerms[pos, 2] = (float)(i)
 
                         if ov >= sna_threshold:
