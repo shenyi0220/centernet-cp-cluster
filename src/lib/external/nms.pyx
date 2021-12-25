@@ -341,8 +341,8 @@ def soft_bp_nms(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, 
     keep = [i for i in range(N)]
     return keep
 
-def soft_bp_nms_v2(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.3, float threshold=0.01, unsigned int method=0,
-             int opt_sna=0, float sna_threshold=0.8, int opt_sai=0):
+def cp_cluster(np.ndarray[float, ndim=2] boxes, float Nt=0.5, float threshold=0.01,
+               int opt_sna=0, float wfa_threshold=0.8, int opt_sai=0):
     cdef unsigned int N = boxes.shape[0]
 
     # Pre-calculate area sizes.
@@ -396,7 +396,7 @@ def soft_bp_nms_v2(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.
             # apply sai
             if opt_sai:
                 Nt = getSizeAwareIOUThresh(tx2 - tx1, ty2 - ty1, 30.0, 100.0, 0.45, 0.6)
-                sna_threshold = getSizeAwareIOUThresh(tx2 - tx1, ty2 - ty1, 50.0, 80.0, 0.8, 0.9)
+                wfa_threshold = getSizeAwareIOUThresh(tx2 - tx1, ty2 - ty1, 50.0, 80.0, 0.8, 0.9)
 
             # vars for sna
             auxMaxConf = 0.0
@@ -439,7 +439,7 @@ def soft_bp_nms_v2(np.ndarray[float, ndim=2] boxes, float sigma=0.5, float Nt=0.
                                 negTerms[pos, 1] = momentum
                                 negTerms[pos, 2] = (float)(i)
 
-                        if ov >= sna_threshold:
+                        if ov >= wfa_threshold:
                             auxProposalNumber = auxProposalNumber + 1.0
                             if boxes[pos, 4] > auxMaxConf:
                                 auxMaxConf = boxes[pos, 4]

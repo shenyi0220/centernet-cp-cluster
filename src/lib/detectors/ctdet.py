@@ -11,7 +11,7 @@ import torch
 try:
   from external.nms import soft_nms
   from external.nms import nms
-  from external.nms import soft_bp_nms, soft_bp_nms_v2
+  from external.nms import cp_cluster
 except:
   print('NMS not imported! If you need it,'
         ' do \n cd $CenterNet_ROOT/src/lib/external \n make')
@@ -67,7 +67,7 @@ class CtdetDetector(BaseDetector):
       if len(self.scales) > 1 or self.opt.nms:
         if self.opt.nms_method == 'soft':
           #soft_nms(results[j], Nt=0.5, method=1, opt_sna=self.opt.nms_opt_sna, sna_threshold=self.opt.nms_sna_threshold, opt_sai=self.opt.nms_opt_sai)
-          soft_bp_nms_v2(results[j], Nt=0.5, method=1, opt_sna=self.opt.nms_opt_sna, sna_threshold=self.opt.nms_sna_threshold)
+          cp_cluster(results[j], Nt=0.5, opt_sna=1, wfa_threshold=self.opt.nms_sna_threshold)
         elif self.opt.nms_method == 'normal':
           nms(results[j], thresh=0.5)
     scores = np.hstack(
